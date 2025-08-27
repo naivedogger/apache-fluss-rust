@@ -42,7 +42,6 @@ impl Config {
 
                 match key.as_str() {
                     "bootstrap.servers" => {
-                        println!("Setting bootstrap server: {}", value);
                         config.bootstrap_server = Some(value);
                     },
                     "request.max.size" => {
@@ -69,8 +68,6 @@ impl Config {
                 }
             }
         }
-
-        println!("Created Config with properties: {:?}", config);
 
         Ok(Self {
             inner: config,

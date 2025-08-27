@@ -45,7 +45,7 @@ impl FlussConnection {
                 .map_err(|e| FlussError::new_err(e.to_string()))?;
         
             let py_connection = FlussConnection {
-            inner: Arc::new(connection),
+                inner: Arc::new(connection),
             };
 
             Python::with_gil(|py| {

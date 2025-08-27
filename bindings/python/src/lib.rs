@@ -60,11 +60,7 @@ fn fluss_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TableBucket>()?;
     
     // Register exception types
-    // TODO: implement a separate module for exceptions
-    // Example implementation:
-    // let exception_module = PyModule::new(py, "exceptions")?;
-    // exception_module.add("Error", py.get_type::<Error>())?;
-    // m.add_submodule(&exception_module)?;
+    // TODO: maybe implement a separate module for exceptions
     m.add("FlussError", m.py().get_type::<FlussError>())?;
     
     Ok(())
