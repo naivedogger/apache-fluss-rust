@@ -219,29 +219,6 @@ impl AppendWriter {
         self.write_arrow(py, pa_table.into_py(py))
     }
 
-    /// Append a single row from a Python dictionary
-    pub fn append_row(&mut self, py: Python, row_dict: PyObject) -> PyResult<()> {
-        let mut generic_row = fcore::row::GenericRow::new();
-        
-        // Extract dictionary items as (key, value) pairs
-        let dict_ref = row_dict.bind(py);
-        let items = dict_ref.call_method0("items")?;
-        
-        let mut field_idx = 0;
-        for item in items.try_iter()? {
-            let (_, value) = item?.extract::<(String, PyObject)>()?;
-            let datum = self.convert_python_value_to_datum(py, value)?;
-            generic_row.set_field(field_idx, datum);
-            field_idx += 1;
-        }
-        
-        // Append the row
-        TOKIO_RUNTIME.block_on(async {
-            self.inner.append(generic_row).await
-                .map_err(|e| FlussError::new_err(e.to_string()))
-        })
-    }
-
     /// Flush any pending data
     pub fn flush(&mut self) -> PyResult<()> {
         TOKIO_RUNTIME.block_on(async {
@@ -270,23 +247,8 @@ impl AppendWriter {
         }
     }
 
-    // Convert Python value to Datum
     fn convert_python_value_to_datum(&self, py: Python, value: PyObject) -> PyResult<fcore::row::Datum<'static>> {
         use fcore::row::{Datum, F32, F64, Blob};
-        
-        // First try to extract scalar values from Arrow types
-        let obj_ref = value.bind(py);
-        let type_name = obj_ref.get_type().name()?;
-        
-        // Handle Arrow scalar types
-        let type_name_str = type_name.to_str().unwrap_or("");
-        if type_name_str.contains("Scalar") {
-            // Try to get the Python value from Arrow scalar
-            if let Ok(py_value) = obj_ref.call_method0("as_py") {
-                // Recursively convert the extracted Python value
-                return self.convert_python_value_to_datum(py, py_value.to_object(py));
-            }
-        }
         
         // Check for None (null)
         if value.is_none(py) {
@@ -351,7 +313,6 @@ impl LogScanner {
         _start_timestamp: Option<i64>,
         _end_timestamp: Option<i64>,
     ) -> PyResult<()> {
-        // Handle end_timestamp intelligently
         let end_timestamp = match _end_timestamp {
             Some(ts) => ts,
             None => {
